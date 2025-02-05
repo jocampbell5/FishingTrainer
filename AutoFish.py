@@ -13,7 +13,7 @@ DEBUG = False  # Set to True to display the screenshot; False to hide it.
 
 # --- Screenshot Settings ---
 # Define the region to capture as a dictionary for mss.
-SCREENSHOT_REGION = {"left": 1500, "top": 300, "width": 800, "height": 800}
+SCREENSHOT_REGION = {"left": 750, "top": 200, "width": 400, "height": 500}
 
 # --- Color Settings ---
 TARGET_COLOR = (255, 255, 245)  # The target color (R, G, B) e.g., pure red
@@ -32,22 +32,36 @@ DISPLAY_TIME = 1000       # Time (in milliseconds) to display the screenshot if 
 def find_target_color_in_image(img, target_color, tolerance):
     """
     Given a PIL Image, search for a pixel whose color is within the given tolerance
-    of the target_color. Returns a tuple (found_flag, x, y), where (x, y) are pixel
-    coordinates relative to the image.
+    of the target_color. Returns a tuple (found_flag, x, y).
     """
-    # Convert the PIL Image to a NumPy array.
+    # Convert the PIL Image to a NumPy array
     img_np = np.array(img)
+
+    # Ensure the image has at least 3 color channels (RGB)
+    if len(img_np.shape) < 3 or img_np.shape[2] < 3:
+        print("Error: Image does not have enough color channels.")
+        return False, None, None
+
     height, width = img_np.shape[:2]
 
-    # Loop over pixels.
     for y in range(height):
         for x in range(width):
-            # Get the pixel's (R, G, B) values (ignore alpha if present)
-            pixel = tuple(img_np[y, x][:3])
-            # Cast each pixel value to int to avoid overflow and compare with target_color.
-            if all(abs(int(pixel[i]) - target_color[i]) <= tolerance for i in range(3)):
-                return True, x, y
+            pixel = tuple(img_np[y, x][:3])  # Ensure we only take RGB values
+            
+            # Verify pixel contains valid RGB values
+            if len(pixel) != 3:
+                print(f"Skipping invalid pixel at ({x}, {y}): {pixel}")
+                continue
+            
+            try:
+                if all(abs(int(pixel[i]) - target_color[i]) <= tolerance for i in range(3)):
+                    return True, x, y
+            except IndexError:
+                print(f"IndexError: Pixel data at ({x}, {y}) is invalid: {pixel}")
+                continue  # Skip this pixel if there's an issue
+
     return False, None, None
+
 
 
 def show_image_cv2(img, window_name="Screenshot Region", delay=DISPLAY_TIME):
