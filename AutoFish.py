@@ -26,7 +26,7 @@ import pyautogui
 import cv2
 from PIL import Image
 import mss
-import tkinter as tk
+import keyboard  # Using keyboard to listen for spacebar globally
 
 # ====================================================
 # CONFIGURATION
@@ -46,9 +46,28 @@ INTERVAL = 1 / 30       # ~30 FPS
 TIMEOUT = 30            # Seconds before forcing a cast
 POST_ACTION_DELAY = 2   # Delay before next cycle
 LURE_WAIT_TIME = 5      # Time to wait after applying lure
+START_DELAY = 5         # 5-second delay before applying lure
 
 # Global control flag for stopping
 running = True
+
+# ====================================================
+# FIXED KEY PRESS DETECTION FUNCTION
+# ====================================================
+
+def wait_for_keypress():
+    """Wait for the user to press the spacebar globally using `keyboard`."""
+    print("🎣 Fishing Bot Initialized. Press SPACE to start.")
+
+    # Wait for spacebar press globally
+    keyboard.wait('space')
+
+    print("✅ Spacebar pressed!")
+    
+    # Countdown before starting the lure
+    for i in range(START_DELAY, 0, -1):
+        print(f"⏳ Starting in {i} seconds...")
+        time.sleep(1)
 
 # ====================================================
 # HELPER FUNCTIONS
@@ -73,26 +92,6 @@ def show_debug_image(img):
     cv2.imshow("Screenshot", img_cv)
     cv2.waitKey(1000)
     cv2.destroyWindow("Screenshot")
-
-def wait_for_spacebar_gui():
-    """Open a Tkinter window that waits for the user to press the spacebar."""
-    root = tk.Tk()
-    root.title("Fishing Bot")
-    
-    # Set the window to a fixed size and position (optional)
-    root.geometry("400x150+500+300")
-    
-    label = tk.Label(root, text="Fishing Bot Initialized\nPress SPACE to start", 
-                     font=("Helvetica", 16), justify="center")
-    label.pack(expand=True)
-    
-    # When the spacebar is pressed, destroy the window.
-    def on_space(event):
-        root.destroy()
-    
-    root.bind('<space>', on_space)
-    root.mainloop()
-    print("Spacebar pressed!")
 
 # ====================================================
 # MAIN SCRIPT FUNCTIONS
@@ -142,13 +141,13 @@ def start_fishing():
             time.sleep(POST_ACTION_DELAY)
 
 def main():
-    """Wait for user input via a GUI then start lure application and the fishing loop."""
+    """Wait for user input via a global spacebar press, then start lure application and the fishing loop."""
     global running
 
-    # Open a Tkinter window that waits for a spacebar press
-    wait_for_spacebar_gui()
+    # Wait for a global spacebar press
+    wait_for_keypress()
 
-    print("Pressing '2' to start lure macro.")
+    print("🎣 Pressing '2' to start lure macro.")
     pyautogui.press('2')  # Start lure macro
     print("🕒 Waiting for lure to apply...")
     time.sleep(LURE_WAIT_TIME)  # Ensure lure is applied
