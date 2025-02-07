@@ -13,7 +13,12 @@ DEBUG = False  # Set to True to display the screenshot; False to hide it.
 
 # --- Screenshot Settings ---
 # Define the region to capture as a dictionary for mss.
+
+# Screen size for 4k resolution
 SCREENSHOT_REGION = {"left": 1600, "top": 400, "width": 700, "height": 700}
+
+# Screen size for 1980 x 1024
+# SCREENSHOT_REGION = {"left": 750, "top": 200, "width": 400, "height": 500}
 
 # --- Color Settings ---
 TARGET_COLOR = (255, 255, 245)  # The target color (R, G, B) e.g., pure red
@@ -79,13 +84,23 @@ def show_image_cv2(img, window_name="Screenshot Region", delay=DISPLAY_TIME):
 # ====================================================
 
 
-#
+# FIXES RIGHT NOW:
 # We want the app to say that the app has started
 # We want the app to start by pressing 2 - to start the macro for adding the lure
 # We want wait until the lure is attached and the fishing pole is equiped (say X seconds or so)
 # We want then start the main script of looking for the splash
 # 
+
+# QoL Features:
+# Really what we want, is the ability to set the border region each time we start the app.
+# We also want to be able to select between Retail, Cata, and Classic splash color code
+# We want the information to not be in the terminal but on the screen when an event fires (found color, didn't find color, started app, etc)
+# We want to be able to play and stop the 'fishing line events' while it's running (there's a difference between stopped and exited)
+# Be able to gracefully exit the application (not pressing ctrl+c to cancel)
+# We want to gracefully be able to add the fishing lure anytime we want
+# SPECIFICALLY FOR MIKEL - Is there a better way to find the color code for the splash animation?? (He doesn't like MSS, even though it's fucking working.)
 #
+# 
 
 def main():
     with mss.mss() as sct:
