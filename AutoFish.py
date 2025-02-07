@@ -13,7 +13,7 @@ DEBUG = False  # Set to True to display the screenshot; False to hide it.
 
 # --- Screenshot Settings ---
 # Define the region to capture as a dictionary for mss.
-SCREENSHOT_REGION = {"left": 750, "top": 200, "width": 400, "height": 500}
+SCREENSHOT_REGION = {"left": 1600, "top": 400, "width": 700, "height": 700}
 
 # --- Color Settings ---
 TARGET_COLOR = (255, 255, 245)  # The target color (R, G, B) e.g., pure red
@@ -77,6 +77,15 @@ def show_image_cv2(img, window_name="Screenshot Region", delay=DISPLAY_TIME):
 # ====================================================
 # MAIN SCRIPT
 # ====================================================
+
+
+#
+# We want the app to say that the app has started
+# We want the app to start by pressing 2 - to start the macro for adding the lure
+# We want wait until the lure is attached and the fishing pole is equiped (say X seconds or so)
+# We want then start the main script of looking for the splash
+# 
+#
 
 def main():
     with mss.mss() as sct:
