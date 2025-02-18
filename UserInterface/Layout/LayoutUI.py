@@ -1,12 +1,11 @@
 # LayoutUI.py
 
-
-
 import sys
 import os
+import subprocess  # For running external scripts
 
 # Get the root directory of the project (one level up from UserInterFace/Layout)
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
@@ -27,12 +26,18 @@ class ButtonWindow(QWidget):
         self.setGeometry(100, 100, 200, 400)  # Smaller window for buttons
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         
+        # Remove the red border by clearing or not setting the stylesheet
+        self.setStyleSheet("")
+        
         layout = QVBoxLayout()
         
         self.btn_play = QPushButton("Play")
         self.btn_stop = QPushButton("Stop")
         self.btn_settings = QPushButton("Settings")
         self.btn_close = QPushButton("Close")
+
+        # Connect the Play button to run AutoFish.py
+        self.btn_play.clicked.connect(self.start_auto_fish)
 
         # Connect close button to close both windows
         self.btn_close.clicked.connect(self.close_both_windows)
@@ -44,6 +49,23 @@ class ButtonWindow(QWidget):
         layout.addStretch()  # Push buttons to the top
 
         self.setLayout(layout)
+
+    def start_auto_fish(self):
+        # Path to the Python interpreter in your virtual environment
+        python_path = r'C:\Users\mikel\Documents\4klabs\FishingTrainer\.venv\Scripts\python.exe'
+        # Correct path to the AutoFish.py script within the Core folder
+        auto_fish_path = r'C:\Users\mikel\Documents\4klabs\FishingTrainer\Core\AutoFish.py'
+
+        # Add the Config directory to sys.path to ensure Settings.py can be imported
+        config_path = os.path.join(project_root, 'Config')
+        if config_path not in sys.path:
+            sys.path.insert(0, config_path)
+        
+        # Run the script using the virtual environment's Python
+        subprocess.Popen([python_path, auto_fish_path])
+        
+        # Optionally, log this action
+        self.log_window.log_text.append("AutoFish started!")
 
     def close_both_windows(self):
         # Close both windows
@@ -59,6 +81,9 @@ class LogWindow(QWidget):
         self.setWindowTitle("Message Log")
         self.setGeometry(350, 100, 600, 400)  # Larger window for log
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        
+        # Remove the red border by clearing or not setting the stylesheet
+        self.setStyleSheet("")
         
         layout = QVBoxLayout()
         
@@ -80,7 +105,7 @@ def main():
     button_window.show()
     log_window.show()
 
-    # Optionally, position the windows side by side
+    # Position the windows side by side
     screen = QDesktopWidget().screenGeometry()
     button_window.move(screen.width() // 2 - button_window.width() - 10, screen.height() // 2 - button_window.height() // 2)
     log_window.move(screen.width() // 2 + 10, screen.height() // 2 - log_window.height() // 2)

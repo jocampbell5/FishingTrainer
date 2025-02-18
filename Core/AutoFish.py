@@ -23,26 +23,6 @@
 #
 
 
-import time
-import threading
-import numpy as np
-import pyautogui
-import cv2
-from PIL import Image
-import mss
-import keyboard  # Using keyboard to listen for spacebar globally
-
-
-# Import configurations from Settings.py
-from Config.Settings import DEBUG, SCREENSHOT_REGION, TARGET_COLOR, COLOR_TOLERANCE, INTERVAL, TIMEOUT, POST_ACTION_DELAY, LURE_WAIT_TIME, START_DELAY
-
-# Import the preview screenshot function from PreviewSS.py
-from Config.PreviewSS import preview_screenshot
-
-
-
-# Global control flag for stopping
-running = True
 
 # # ====================================================
 # # CONFIGURATION
@@ -119,9 +99,57 @@ running = True
 #     cv2.destroyAllWindows()
 #     print("✅ Screenshot Preview Closed.")
 
-# ====================================================
-# KEY PRESS DETECTION FUNCTION
-# ====================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# New Code Here
+
+import time
+import threading
+import numpy as np
+import pyautogui
+import cv2
+from PIL import Image
+import mss
+import keyboard  # Using keyboard to listen for spacebar globally
+import sys
+import os
+
+# Directly use the absolute path to ensure it works
+# Insert the project root (the parent directory of Config) into sys.path
+project_root = r'C:\Users\mikel\Documents\4klabs\FishingTrainer'
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+
+# Now proceed with your imports
+from Config.Settings import DEBUG, SCREENSHOT_REGION, TARGET_COLOR, COLOR_TOLERANCE, INTERVAL, TIMEOUT, POST_ACTION_DELAY, LURE_WAIT_TIME, START_DELAY
+from Config.PreviewSS import preview_screenshot
+
+
+# Global control flag for stopping
+running = True
 
 def wait_for_keypress():
     """
@@ -135,10 +163,6 @@ def wait_for_keypress():
     for i in range(START_DELAY, 0, -1):
         print(f"⏳ Starting in {i} seconds...")
         time.sleep(1)
-
-# ====================================================
-# HELPER FUNCTIONS
-# ====================================================
 
 def find_target_color(img, target_color, tolerance):
     """
@@ -163,10 +187,6 @@ def show_debug_image(img):
     cv2.imshow("Screenshot", img_cv)
     cv2.waitKey(1000)
     cv2.destroyWindow("Screenshot")
-
-# ====================================================
-# MAIN SCRIPT FUNCTIONS
-# ====================================================
 
 def start_fishing():
     """
