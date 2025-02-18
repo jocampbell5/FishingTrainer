@@ -1,5 +1,6 @@
 # LayoutUI.py
 
+
 import sys
 import os
 
@@ -14,7 +15,6 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 
-
 class FishingTrainerUI(QWidget):
     def __init__(self):
         super().__init__()
@@ -23,6 +23,9 @@ class FishingTrainerUI(QWidget):
     def init_ui(self):
         self.setWindowTitle("Fishing Trainer")
         self.setGeometry(100, 100, 800, 600)  # Ensure the window is not too small
+        
+        # Remove window decorations
+        self.setWindowFlags(Qt.FramelessWindowHint)
         
         # Create a horizontal splitter for adjustable box sizes
         splitter = QSplitter(Qt.Horizontal)
@@ -45,6 +48,9 @@ class FishingTrainerUI(QWidget):
         left_layout.addWidget(self.btn_settings)
         left_layout.addWidget(self.btn_close)
         left_layout.addStretch()  # Push buttons to the top
+
+        # Connect the close button to close the window
+        self.btn_close.clicked.connect(self.close)
         
         # --- Right Box: Message Log ---
         self.log_text = QTextEdit()
