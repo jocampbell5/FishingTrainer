@@ -125,6 +125,7 @@
 
 # New Code Here
 
+
 import time
 import threading
 import numpy as np
@@ -133,23 +134,25 @@ import cv2
 from PIL import Image
 import mss
 import keyboard  # Using keyboard to listen for spacebar globally
-import sys
 import os
+import sys
 
-# Directly use the absolute path to ensure it works
-# Insert the project root (the parent directory of Config) into sys.path
+sys.stdout.reconfigure(encoding='utf-8')
+
+
+# Insert the project root so that 'Config' is found as a package
 project_root = r'C:\Users\mikel\Documents\4klabs\FishingTrainer'
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-
-# Now proceed with your imports
 from Config.Settings import DEBUG, SCREENSHOT_REGION, TARGET_COLOR, COLOR_TOLERANCE, INTERVAL, TIMEOUT, POST_ACTION_DELAY, LURE_WAIT_TIME, START_DELAY
 from Config.PreviewSS import preview_screenshot
 
-
 # Global control flag for stopping
 running = True
+
+# Define a file to act as a pause flag
+PAUSE_FILE = os.path.join(project_root, 'pause_flag.txt')
 
 def wait_for_keypress():
     """
@@ -193,16 +196,39 @@ def start_fishing():
     Main function to detect splash and auto-click.
     """
     global running
+    paused = False  # Flag to track if we've already printed pause/resume messages
     print("🎣 Fishing bot started!")
 
     with mss.mss() as sct:
         while running:
+            # Check for pause flag at the very start of each iteration.
+            if os.path.exists(PAUSE_FILE):
+                if not paused:
+                    print("⏸️ Fishing paused. Waiting for resume...")
+                    paused = True
+                time.sleep(0.5)
+                continue  # Skip the rest of the loop until unpaused
+            else:
+                if paused:
+                    print("▶️ Resuming fishing...")
+                    paused = False
+
             start_time = time.time()
             detection_made = False
 
+            # Begin splash detection loop (only runs if not paused)
             while time.time() - start_time < TIMEOUT:
                 if not running:
                     return
+
+                # Double-check pause status inside the inner loop
+                if os.path.exists(PAUSE_FILE):
+                    if not paused:
+                        print("⏸️ Fishing paused during detection. Waiting for resume...")
+                        paused = True
+                    time.sleep(0.5)
+                    # Break out of the inner loop if paused
+                    break
 
                 # Capture the region
                 sct_img = sct.grab(SCREENSHOT_REGION)
@@ -217,23 +243,24 @@ def start_fishing():
                     abs_y = SCREENSHOT_REGION["top"] + rel_y
 
                     print(f"🎯 Splash detected at ({abs_x}, {abs_y}). Clicking!")
-                    # Move the mouse instantly (or nearly instantly with a very short duration)
                     pyautogui.moveTo(abs_x, abs_y, duration=0.1)
                     pyautogui.rightClick()
 
                     # Wait 2 seconds before casting the fishing line
                     time.sleep(2)
-                    pyautogui.press('1')  # Cast fishing line
+                    pyautogui.press('1')
                     detection_made = True
                     break
 
                 time.sleep(INTERVAL)
 
-            if not detection_made:
-                pyautogui.press('1')  # Cast again if no splash detected
+            # Only cast again if detection wasn't made and we're not paused.
+            if not detection_made and not os.path.exists(PAUSE_FILE):
+                pyautogui.press('1')
                 print(f"⏳ Timeout reached ({TIMEOUT}s), casting again.")
 
             time.sleep(POST_ACTION_DELAY)
+
 
 def main():
     """
