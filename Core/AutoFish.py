@@ -32,80 +32,92 @@ from PIL import Image
 import mss
 import keyboard  # Using keyboard to listen for spacebar globally
 
-# ====================================================
-# CONFIGURATION
-# ====================================================
 
-DEBUG = False  # Set to True to display the screenshot (in debug mode)
+# Import configurations from Settings.py
+from Config.Settings import DEBUG, SCREENSHOT_REGION, TARGET_COLOR, COLOR_TOLERANCE, INTERVAL, TIMEOUT, POST_ACTION_DELAY, LURE_WAIT_TIME, START_DELAY
 
-# Screen capture region (adjust as needed)
-SCREENSHOT_REGION = {"left": 700, "top": 75, "width": 450, "height": 500}
+# Import the preview screenshot function from PreviewSS.py
+from Config.PreviewSS import preview_screenshot
 
-# Splash color detection
-TARGET_COLOR = (255, 255, 245)  # Adjust per game version
-COLOR_TOLERANCE = 10
 
-# Timing settings
-INTERVAL = 1 / 30       # ~30 FPS
-TIMEOUT = 30            # Seconds before forcing a cast
-POST_ACTION_DELAY = 2   # Delay before next cycle
-LURE_WAIT_TIME = 5      # Time to wait after applying lure
-START_DELAY = 5         # 5-second delay before applying lure
 
 # Global control flag for stopping
 running = True
 
-# ====================================================
-# SCREENSHOT PREVIEW WINDOW (10-second duration)
-# ====================================================
+# # ====================================================
+# # CONFIGURATION
+# # ====================================================
 
-def preview_screenshot():
-    """
-    Displays a live preview of the screenshot region with a centered label "SCREEN SHOT PREVIEW".
-    The preview will auto-close after 10 seconds or if 'q' is pressed.
-    """
-    print("📷 Opening Screenshot Preview Window (10 seconds)...")
-    start_time = time.time()
+# DEBUG = False  # Set to True to display the screenshot (in debug mode)
+
+# # Screen capture region (adjust as needed)
+# SCREENSHOT_REGION = {"left": 700, "top": 75, "width": 450, "height": 500}
+
+# # Splash color detection
+# TARGET_COLOR = (255, 255, 245)  # Adjust per game version
+# COLOR_TOLERANCE = 10
+
+# # Timing settings
+# INTERVAL = 1 / 30       # ~30 FPS
+# TIMEOUT = 30            # Seconds before forcing a cast
+# POST_ACTION_DELAY = 2   # Delay before next cycle
+# LURE_WAIT_TIME = 5      # Time to wait after applying lure
+# START_DELAY = 5         # 5-second delay before applying lure
+
+# # Global control flag for stopping
+# running = True
+
+# # ====================================================
+# # SCREENSHOT PREVIEW WINDOW (10-second duration)
+# # ====================================================
+
+# def preview_screenshot():
+#     """
+#     Displays a live preview of the screenshot region with a centered label "SCREEN SHOT PREVIEW".
+#     The preview will auto-close after 10 seconds or if 'q' is pressed.
+#     """
+#     print("📷 Opening Screenshot Preview Window (10 seconds)...")
+#     start_time = time.time()
     
-    with mss.mss() as sct:
-        while True:
-            # Capture the region
-            sct_img = sct.grab(SCREENSHOT_REGION)
-            frame = np.array(sct_img)
-            # Convert from RGB to BGR for OpenCV
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+#     with mss.mss() as sct:
+#         while True:
+#             # Capture the region
+#             sct_img = sct.grab(SCREENSHOT_REGION)
+#             frame = np.array(sct_img)
+#             # Convert from RGB to BGR for OpenCV
+#             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             
-            # Define text parameters
-            text = "SCREEN SHOT PREVIEW"
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            font_scale = 1.0
-            thickness = 2
+#             # Define text parameters
+#             text = "SCREEN SHOT PREVIEW"
+#             font = cv2.FONT_HERSHEY_SIMPLEX
+#             font_scale = 1.0
+#             thickness = 2
             
-            # Get text size
-            text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
-            text_width, text_height = text_size
+#             # Get text size
+#             text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
+#             text_width, text_height = text_size
             
-            # Center the text in the frame
-            h, w, _ = frame.shape
-            text_x = (w - text_width) // 2
-            text_y = (h + text_height) // 2
+#             # Center the text in the frame
+#             h, w, _ = frame.shape
+#             text_x = (w - text_width) // 2
+#             text_y = (h + text_height) // 2
             
-            # Overlay text on the frame
-            cv2.putText(frame, text, (text_x, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
+#             # Overlay text on the frame
+#             cv2.putText(frame, text, (text_x, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
             
-            # Show the frame
-            cv2.imshow("Screen Shot Preview", frame)
+#             # Show the frame
+#             cv2.imshow("Screen Shot Preview", frame)
             
-            # Close preview if 'q' is pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+#             # Close preview if 'q' is pressed
+#             if cv2.waitKey(1) & 0xFF == ord('q'):
+#                 break
             
-            # Auto-close after 10 seconds
-            if time.time() - start_time > 10:
-                break
+#             # Auto-close after 10 seconds
+#             if time.time() - start_time > 10:
+#                 break
 
-    cv2.destroyAllWindows()
-    print("✅ Screenshot Preview Closed.")
+#     cv2.destroyAllWindows()
+#     print("✅ Screenshot Preview Closed.")
 
 # ====================================================
 # KEY PRESS DETECTION FUNCTION
@@ -210,7 +222,7 @@ def main():
     global running
 
     # Show the screenshot preview window before starting (auto-closes after 10 seconds)
-    preview_screenshot()
+    preview_screenshot(SCREENSHOT_REGION, duration=10)
 
     # Wait for a global spacebar press to start the bot
     wait_for_keypress()

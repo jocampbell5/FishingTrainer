@@ -1,0 +1,14 @@
+ # Python package dependencies #
+
+
+install Python from https://www.python.org/downloads/
+
+# import time
+# import threading
+# import numpy as np        pip install numpy
+# import pyautogui          pip install pyautogui
+# import cv2                pip install opencv-python
+# from PIL import Image     pip install pillow
+# import mss                pip install mss
+# import keyboard           pip install keyboard
+# import PyQt5              pip install PyQt5
