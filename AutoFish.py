@@ -14,30 +14,29 @@ import os
 # CONFIGURATION
 # ====================================================
 
-DEBUG = False  # Debugging should be false by default
+DEBUG = True  # Debugging should be true to see screenshots
 
 # Screen capture region
-SCREENSHOT_REGION = {"left": 1650, "top": 300, "width": 700, "height": 700}
+SCREENSHOT_REGION = {"left": 1650, "top": 300, "width": 670, "height": 470}
 
 # Template matching settings for initial detection
 TEMPLATE_DIR = r"d:\fishingtrainer\bobber_templates"  # Directory for multiple templates
-TEMPLATE_THRESHOLD = 0.4  # Lowered slightly based on your scores
-1
+TEMPLATE_THRESHOLD = 0.6  # Lowered slightly based on your scores
+
 # Bobber area bounds for filtering matches
 BOBBER_AREA_BOUNDS = {"min_x": 20, "max_x": 650, "min_y": 20, "max_y": 450}  # Central region
 
 # Splash detection settings (monitor pixel changes in bobber region)
 BOBBER_CROP_SIZE = 70  # Size of the cropped region around initial bobber (pixels)
-INTENSITY_CHANGE_THRESHOLD = 3.5  # Mean intensity change to detect splash
+INTENSITY_CHANGE_THRESHOLD = 6  # Mean intensity change to detect splash
 CONFIRMATION_FRAMES = 3  # Frames to confirm splash
 
 # Timing settings
 INTERVAL = 0.1          # Slower interval to reduce jitter (~10 FPS)
 TIMEOUT = 20            # Seconds before forcing a cast
-POST_ACTION_DELAY = 1   # Delay before next cycle
-START_DELAY = 1         # 1-second delay before starting
+POST_ACTION_DELAY = .1   # Delay before next cycle
+START_DELAY = .1         # 1-second delay before starting
 RECAST_ATTEMPTS = 3     # Attempts if bobber not found
-TEMPLATE_SAVE_DELAY = 0.1  # Short delay for key press check during monitoring
 
 # Directory for saving screenshots
 SAVE_DIR = r"D:\fishingtrainer"
@@ -119,12 +118,18 @@ def find_bobber(img):
                 BOBBER_AREA_BOUNDS["min_y"] <= best_center_y <= BOBBER_AREA_BOUNDS["max_y"]):
                 print(f"🪝 Bobber detected at ({best_center_x}, {best_center_y}) with match score {best_match:.2f}.")
                 if DEBUG:
-                    # Save marked screenshot with bobber position
+                    # Save marked screenshot with bobber position and bounds
                     marked_img = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
                     cv2.circle(marked_img, (best_center_x, best_center_y), 10, (0, 255, 0), 2)  # Green circle at bobber
+                    # Draw red rectangle for bobber bounds
+                    cv2.rectangle(marked_img, 
+                                 (BOBBER_AREA_BOUNDS["min_x"], BOBBER_AREA_BOUNDS["min_y"]),
+                                 (BOBBER_AREA_BOUNDS["max_x"], BOBBER_AREA_BOUNDS["max_y"]),
+                                 (0, 0, 255),  # Red color in BGR
+                                 2)  # Thickness
                     marked_filename = os.path.join(SAVE_DIR, "marked_screenshot.png")
                     cv2.imwrite(marked_filename, marked_img)
-                    print(f"📸 Saved marked screenshot to '{marked_filename}'.")
+                    print(f"📸 Saved marked screenshot with bounds to '{marked_filename}'.")
                 return True, best_center_x, best_center_y
             else:
                 print(f"❌ Bobber at ({best_center_x}, {best_center_y}) outside bounds {BOBBER_AREA_BOUNDS}.")
@@ -168,6 +173,16 @@ def detect_splash(img, initial_x, initial_y):
     if delta_intensity > INTENSITY_CHANGE_THRESHOLD:
         return True
     return False
+
+def save_bobber_template(img, initial_x, initial_y):
+    """Save the cropped bobber as a new template."""
+    img_np = np.array(img)  # Convert PIL Image to NumPy array
+    crop_img = img_np[initial_y - BOBBER_CROP_SIZE // 2:initial_y + BOBBER_CROP_SIZE // 2,
+                      initial_x - BOBBER_CROP_SIZE // 2:initial_x + BOBBER_CROP_SIZE // 2]
+    if crop_img.size > 0:
+        new_template_path = os.path.join(TEMPLATE_DIR, f"bobber_template_{int(time.time())}.png")
+        cv2.imwrite(new_template_path, crop_img)
+        print(f"📸 Saved new template to '{new_template_path}'.")
 
 def show_debug_image(img):
     """Display an image for debugging."""
@@ -243,7 +258,6 @@ def fishing_cycle():
             # Reset initial intensity for splash detection
             global initial_intensity
             initial_intensity = None
-            detect_splash(img, initial_x, initial_y)  # Set initial intensity immediately
 
             start_time = time.time()
             detection_made = False
@@ -259,15 +273,9 @@ def fishing_cycle():
                     print("N pressed. Recasting line.")
                     break  # Break monitoring to recast
 
-                # Check for 'y' to save template at any time during monitoring
+                # Check for 'y' to save template anytime during monitoring
                 if keyboard.is_pressed('y'):
-                    crop_img = img[initial_y - BOBBER_CROP_SIZE // 2:initial_y + BOBBER_CROP_SIZE // 2,
-                                 initial_x - BOBBER_CROP_SIZE // 2:initial_x + BOBBER_CROP_SIZE // 2]
-                    if crop_img.size > 0:
-                        new_template_path = os.path.join(TEMPLATE_DIR, f"bobber_template_{int(time.time())}.png")
-                        cv2.imwrite(new_template_path, crop_img)
-                        print(f"📸 Saved new template to '{new_template_path}'.")
-                    time.sleep(TEMPLATE_SAVE_DELAY)  # Brief delay to avoid multiple saves
+                    save_bobber_template(img, initial_x, initial_y)
 
                 # Capture the region
                 with mss.mss() as sct:
