@@ -9,6 +9,7 @@ from PIL import Image
 import mss
 import keyboard
 import os
+import random
 
 # ====================================================
 # CONFIGURATION
@@ -21,22 +22,30 @@ SCREENSHOT_REGION = {"left": 1650, "top": 300, "width": 670, "height": 470}
 
 # Template matching settings for initial detection
 TEMPLATE_DIR = r"d:\fishingtrainer\bobber_templates"  # Directory for multiple templates
-TEMPLATE_THRESHOLD = 0.6  # Lowered slightly based on your scores
+TEMPLATE_THRESHOLD = 0.65  # Lowered slightly based on your scores
 
 # Bobber area bounds for filtering matches
-BOBBER_AREA_BOUNDS = {"min_x": 20, "max_x": 650, "min_y": 20, "max_y": 450}  # Central region
+BOBBER_AREA_BOUNDS = {"min_x": 20, "max_x": 650, "min_y": 20, "max_y": 450}  # Central region, adjust if needed
 
 # Splash detection settings (monitor pixel changes in bobber region)
 BOBBER_CROP_SIZE = 70  # Size of the cropped region around initial bobber (pixels)
-INTENSITY_CHANGE_THRESHOLD = 6  # Mean intensity change to detect splash
+INTENSITY_CHANGE_THRESHOLD = 4  # Mean intensity change to detect splash
 CONFIRMATION_FRAMES = 3  # Frames to confirm splash
 
-# Timing settings
+# Timing settings with random ranges
 INTERVAL = 0.1          # Slower interval to reduce jitter (~10 FPS)
 TIMEOUT = 20            # Seconds before forcing a cast
-POST_ACTION_DELAY = .1   # Delay before next cycle
-START_DELAY = .1         # 1-second delay before starting
+POST_ACTION_DELAY = (0.1, 3.0)  # Range for delay before next cycle
+START_DELAY = (0.1, 1.5)        # Range for initial delay
+MOVE_DELAY_TO_BOBBER = (0.1, 1.2)  # Range for delay moving to bobber
+MOVE_DELAY_TO_EDGE = (0.1, 3.0)    # Range for delay moving to any point on bounding box edge
 RECAST_ATTEMPTS = 3     # Attempts if bobber not found
+
+# New configurable variables
+SESSION_LIMIT = 7200    # Session limit in seconds (default 2 hours)
+RANDOM_BREAK_CHANCE = 0.10  # Chance of random break (0 to 0.5, default 10%)
+BREAK_START_DELAY = 300  # Time in seconds before random breaks can start (default 5 minutes)
+RANDOM_BREAK_LENGTH = (15, 120)  # Range for random break duration in seconds (default 30-60 seconds)
 
 # Directory for saving screenshots
 SAVE_DIR = r"D:\fishingtrainer"
@@ -44,8 +53,11 @@ SAVE_DIR = r"D:\fishingtrainer"
 # Global control flag for stopping
 running = True
 
-# Global for splash detection
+# Global for splash detection, break timer, and timing control
 initial_intensity = None
+break_start_time = None  # Tracks when the break delay starts
+last_intensity_print = 0  # Tracks last time intensity was printed
+last_time_print = 0      # Tracks last time remaining time was printed
 
 # ====================================================
 # HELPER FUNCTIONS
@@ -70,10 +82,9 @@ def load_templates():
             template = cv2.imread(template_path, cv2.IMREAD_COLOR)
             if template is not None:
                 templates.append(template)
-                print(f"📂 Loaded template: {filename}")
-            else:
-                print(f"❌ Failed to load template from '{template_path}'.")
-    if not templates:
+    if templates:
+        print(f"Loaded {len(templates)} templates")
+    else:
         print("❌ No valid templates found in the directory.")
     return templates if templates else None
 
@@ -145,6 +156,7 @@ def find_bobber(img):
 
 def detect_splash(img, initial_x, initial_y):
     """Detect splash by checking pixel intensity change in cropped bobber region."""
+    global last_intensity_print
     img_np = np.array(img)
     # Crop a small region around the initial bobber
     crop_left = max(0, initial_x - BOBBER_CROP_SIZE // 2)
@@ -166,11 +178,13 @@ def detect_splash(img, initial_x, initial_y):
         initial_intensity = current_intensity
         return False
 
-    # Check change
-    delta_intensity = abs(current_intensity - initial_intensity)
-    print(f"📊 Intensity change: {delta_intensity:.2f} (threshold: {INTENSITY_CHANGE_THRESHOLD})")
+    # Check change every ~2 seconds
+    if time.time() - last_intensity_print >= 2.0:
+        delta_intensity = abs(current_intensity - initial_intensity)
+        print(f"📊 Intensity change: {delta_intensity:.2f} (threshold: {INTENSITY_CHANGE_THRESHOLD})")
+        last_intensity_print = time.time()
 
-    if delta_intensity > INTENSITY_CHANGE_THRESHOLD:
+    if abs(current_intensity - initial_intensity) > INTENSITY_CHANGE_THRESHOLD:
         return True
     return False
 
@@ -232,11 +246,40 @@ def fallback_capture():
 
 def fishing_cycle():
     """Run continuous fishing cycles until stopped."""
-    global running
+    global running, break_start_time, last_intensity_print, last_time_print
+    start_time = time.time()  # Record the start time for session limit once at the beginning
+    break_start_time = time.time()  # Initialize break start timer
+    last_intensity_print = time.time()  # Initialize intensity print timer
+    last_time_print = time.time()  # Initialize remaining time print timer
+
     while running:
-        # Cast the line
-        time.sleep(1)
-        pyautogui.press('1')  # Cast fishing line
+        # Immediate pause on WASD or space
+        if (keyboard.is_pressed('w') or keyboard.is_pressed('a') or keyboard.is_pressed('s') or 
+            keyboard.is_pressed('d') or keyboard.is_pressed('space')):
+            print("Manual input detected. Pausing bot until Ctrl+Shift is pressed again.")
+            running = False  # Exit the current cycle, but bot remains ready to resume
+            return
+
+        # Session limit check
+        if time.time() - start_time > SESSION_LIMIT:
+            print(f"Session limit reached ({SESSION_LIMIT / 3600:.1f} hours). Exiting bot.")
+            running = False
+            return
+
+        # Print remaining time every 15 seconds
+        if time.time() - last_time_print >= 15.0:
+            remaining_seconds = max(0, SESSION_LIMIT - (time.time() - start_time))
+            hours = int(remaining_seconds // 3600)
+            minutes = int((remaining_seconds % 3600) // 60)
+            seconds = int(remaining_seconds % 60)
+            print(f"Remaining time: {hours:02d}:{minutes:02d}:{seconds:02d}")
+            last_time_print = time.time()
+
+        # Cast the line with random delay
+        cast_delay = random.uniform(START_DELAY[0], START_DELAY[1])
+        print(f"Cast delay: {cast_delay:.2f} seconds")
+        time.sleep(cast_delay)
+        pyautogui.press('9')  # Cast fishing line
         time.sleep(2)  # Wait for bobber to appear
 
         # Capture the region
@@ -259,15 +302,11 @@ def fishing_cycle():
             global initial_intensity
             initial_intensity = None
 
-            start_time = time.time()
+            local_start_time = time.time()  # Local start time for this monitoring cycle
             detection_made = False
             splash_counter = 0  # Track consecutive frames with splash
 
-            while time.time() - start_time < TIMEOUT:
-                if keyboard.is_pressed('w') or keyboard.is_pressed('a') or keyboard.is_pressed('s') or keyboard.is_pressed('d') or keyboard.is_pressed('space'):
-                    print("Stop key pressed. Stopping fishing.")
-                    return  # Exit the cycle
-
+            while time.time() - local_start_time < TIMEOUT:
                 # Check for 'n' to recast
                 if keyboard.is_pressed('n'):
                     print("N pressed. Recasting line.")
@@ -290,13 +329,19 @@ def fishing_cycle():
                         abs_x = SCREENSHOT_REGION["left"] + initial_x
                         abs_y = SCREENSHOT_REGION["top"] + initial_y
                         print(f"🎯 Bite confirmed at ({abs_x}, {abs_y}) after {splash_counter} frames. Right Clicking!")
-                        pyautogui.moveTo(abs_x, abs_y, duration=0.1)
-                        pyautogui.rightClick()
+                        # Move to bobber with random delay
+                        move_delay_to_bobber = random.uniform(MOVE_DELAY_TO_BOBBER[0], MOVE_DELAY_TO_BOBBER[1])
+                        print(f"Move delay to bobber: {move_delay_to_bobber:.2f} seconds")
+                        pyautogui.moveTo(abs_x, abs_y, duration=move_delay_to_bobber)
+                        pyautogui.rightClick()  # Right click at current mouse position
                         detection_made = True
-                        # Move mouse to bottom right corner of the screenshot region
-                        bottom_right_x = SCREENSHOT_REGION["left"] + SCREENSHOT_REGION["width"] - 10
-                        bottom_right_y = SCREENSHOT_REGION["top"] + SCREENSHOT_REGION["height"] - 10
-                        pyautogui.moveTo(bottom_right_x, bottom_right_y, duration=0.1)
+                        # Move to a random point on any edge of the bounding box
+                        edge_x, edge_y = get_random_edge_point()
+                        abs_edge_x = SCREENSHOT_REGION["left"] + edge_x
+                        abs_edge_y = SCREENSHOT_REGION["top"] + edge_y
+                        move_delay_to_edge = random.uniform(MOVE_DELAY_TO_EDGE[0], MOVE_DELAY_TO_EDGE[1])
+                        print(f"Move delay to edge: {move_delay_to_edge:.2f} seconds")
+                        pyautogui.moveTo(abs_edge_x, abs_edge_y, duration=move_delay_to_edge)
                         break
                 else:
                     splash_counter = 0  # Reset if no splash
@@ -305,20 +350,52 @@ def fishing_cycle():
 
             if not detection_made:
                 print(f"⏳ Timeout reached ({TIMEOUT}s), recasting.")
-            
-            time.sleep(POST_ACTION_DELAY)
+
+        # Random break between sessions if time elapsed and chance met
+        if time.time() - break_start_time >= BREAK_START_DELAY and random.random() < RANDOM_BREAK_CHANCE:
+            break_duration = random.uniform(RANDOM_BREAK_LENGTH[0], RANDOM_BREAK_LENGTH[1])
+            print(f"On break for {break_duration:.2f} seconds")
+            time.sleep(break_duration)
+            break_start_time = time.time()  # Reset break timer after break
+        
+        # Random delay after action or timeout
+        post_delay = random.uniform(POST_ACTION_DELAY[0], POST_ACTION_DELAY[1])
+        print(f"Post-action delay: {post_delay:.2f} seconds")
+        time.sleep(post_delay)
+
+def get_random_edge_point():
+    """Return a random point on any edge of the BOBBER_AREA_BOUNDS."""
+    edge_type = random.choice(['top', 'bottom', 'left', 'right'])
+    if edge_type == 'top':
+        x = random.uniform(BOBBER_AREA_BOUNDS["min_x"], BOBBER_AREA_BOUNDS["max_x"])
+        y = BOBBER_AREA_BOUNDS["min_y"]
+    elif edge_type == 'bottom':
+        x = random.uniform(BOBBER_AREA_BOUNDS["min_x"], BOBBER_AREA_BOUNDS["max_x"])
+        y = BOBBER_AREA_BOUNDS["max_y"]
+    elif edge_type == 'left':
+        x = BOBBER_AREA_BOUNDS["min_x"]
+        y = random.uniform(BOBBER_AREA_BOUNDS["min_y"], BOBBER_AREA_BOUNDS["max_y"])
+    else:  # right
+        x = BOBBER_AREA_BOUNDS["max_x"]
+        y = random.uniform(BOBBER_AREA_BOUNDS["min_y"], BOBBER_AREA_BOUNDS["max_y"])
+    return x, y
 
 def start_fishing_thread():
     """The fishing thread that waits for hotkey to start fishing."""
-    global running
-    while running:
+    global running, break_start_time, last_intensity_print, last_time_print
+    while True:  # Infinite loop to resume on Ctrl+Shift
         keyboard.wait('ctrl+shift')
         print("Ctrl+Shift pressed. Starting fishing process.")
+        running = True  # Reset running to true for the next cycle
         fishing_cycle()
 
 def main():
     """Start the fishing thread."""
-    global running
+    global running, break_start_time, last_intensity_print, last_time_print
+    break_start_time = time.time()  # Reset break timer on application start
+    last_intensity_print = time.time()  # Initialize intensity print timer
+    last_time_print = time.time()  # Initialize remaining time print timer
+    running = True
 
     fishing_thread = threading.Thread(target=start_fishing_thread, daemon=True)
     fishing_thread.start()
