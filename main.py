@@ -118,20 +118,21 @@ def find_bobber(img):
         
         hsv_img = cv2.cvtColor(img_np, cv2.COLOR_RGB2HSV)
         
-        # Stricter purple focus, high saturation to exclude red/brown water
-        mask_feather_purple = cv2.inRange(hsv_img, np.array([135, 90, 80]), np.array([185, 255, 255]))
-        mask_tip_orange = cv2.inRange(hsv_img, np.array([5, 110, 110]), np.array([35, 255, 255]))
-        
+            # Expanded ranges to catch the duller red/purple in deep blue water
+            # Purple Feather: Lowered Value/Saturation to catch it in shadows
+        mask_feather_purple = cv2.inRange(hsv_img, np.array([120, 40, 40]), np.array([170, 255, 255]))
+
+        # Orange/Red Tip: Lowered Saturation floor since water 'mutes' the colors
+        mask_tip_orange = cv2.inRange(hsv_img, np.array([0, 50, 50]), np.array([20, 255, 255]))
+
+        # Combined mask
         red_mask = cv2.bitwise_or(mask_feather_purple, mask_tip_orange)
-        
-        # Strict SV floor
-        sv_mask = cv2.inRange(hsv_img, np.array([0, 80, 80]), np.array([180, 255, 255]))
+
+        # CRITICAL: Lower the SV floor for dark water
+        # Deep blue water has a high 'V' (Value) but low 'S' (Saturation) 
+        # compared to the bobber.
+        sv_mask = cv2.inRange(hsv_img, np.array([0, 40, 40]), np.array([180, 255, 255]))
         red_mask = cv2.bitwise_and(red_mask, sv_mask)
-        
-        # Clean-up
-        kernel_small = np.ones((2,2), np.uint8)
-        red_mask = cv2.erode(red_mask, kernel_small, iterations=1)
-        red_mask = cv2.dilate(red_mask, kernel_small, iterations=1)
         
         highlighted_pixels = cv2.countNonZero(red_mask)
         quality_note = "(good - strong feather)" if highlighted_pixels >= 50 else "(weak - tune ranges?)"
