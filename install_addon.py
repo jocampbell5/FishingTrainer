@@ -16,7 +16,8 @@ from pathlib import Path
 NAME = "FishingInteract"
 OLD_NAME = "FishingTrainer"      # what this addon was called before
 SOURCE = Path(__file__).resolve().parent / "addon" / NAME
-WOW_ROOTS = [r"C:\Program Files (x86)\World of Warcraft", r"C:\Program Files\World of Warcraft"]
+WOW_ROOTS = [r"C:\Program Files (x86)\World of Warcraft", r"C:\Program Files\World of Warcraft",
+             r"D:\World of Warcraft"]
 
 
 def addons_folder() -> Path | None:
