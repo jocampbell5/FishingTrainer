@@ -1,0 +1,3 @@
+<Bindings>
+	<Binding name="CLICK FishingInteractButton:LeftButton" category="FishingInteract"/>
+</Bindings>

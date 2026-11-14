@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: FishingInteract
+## Notes: Lets the Interact key or controller button reel in your bobber: turns soft interact on while you fish, then puts your own settings back.
+## Author: jocampbell5
+## Version: 1.0.0
+## SavedVariables: FishingInteractDB
+
+FishingInteract.lua
