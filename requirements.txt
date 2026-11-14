@@ -1,16 +1,12 @@
- # Python package dependencies #
-
-
-install Python from https://www.python.org/downloads/
-
-# import time
-# import threading
-# import numpy as np        pip install numpy
-# import pyautogui          pip install pyautogui
-# import cv2                pip install opencv-python
-# import mss                pip install mss
-# import keyboard           pip install keyboard
-# import pydirectinput      pip install pydirectinput
-# import win32gui           pip install pywin32
-# from pycaw import ...     pip install pycaw        (sound_bite.py: hears the splash; brings comtypes and psutil)
-# import av                 pip install av           (only for "sound_bite.py --template", to read videos)
+# FishingTrainer's Python packages. FishingTrainer.bat installs them the first time
+# you start it; by hand:  python -m pip install -r requirements.txt
+# Python itself: https://www.python.org/downloads/ (tick "Add python.exe to PATH")
+numpy           # image work on the bobber
+opencv-python   # cv2
+mss             # screen capture
+keyboard        # the Ctrl+Shift pause hotkey
+pyautogui
+pydirectinput   # key presses WoW accepts
+pywin32         # win32gui: finds and focuses the WoW window
+pycaw           # sound_bite.py: hears the splash (brings comtypes and psutil)
+# av            # only for "python sound_bite.py --template <video> <seconds>"
