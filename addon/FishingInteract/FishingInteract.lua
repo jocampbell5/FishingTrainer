@@ -10,6 +10,10 @@
 -- Otherwise it casts Fishing. WoW only lets items be used from a key press, so the
 -- lure goes on when you press the key, and the next press fishes.
 --
+-- At login it binds the keys FishingTrainer presses (Keys.lua, which FishingTrainer's
+-- window rewrites): Fish (] unless you pick another) and Interact with Target ([).
+-- A key that already does something else is left alone, and chat says so.
+--
 -- /fishinteract           shows the settings and your lures
 -- /fishinteract defaults  resets the soft-interact settings to WoW's defaults
 
@@ -208,6 +212,54 @@ end
 BINDING_HEADER_FISHINGINTERACT = "FishingInteract"
 _G["BINDING_NAME_CLICK FishingInteractButton:LeftButton"] = "Fish (puts your best lure on first if the pole has none)"
 
+local FISH_ACTION = "CLICK FishingInteractButton:LeftButton"
+local INTERACT_ACTION = "INTERACTTARGET"
+-- The keys FishingTrainer presses: Keys.lua, which its window rewrites when you change them
+local KEYS = type(FishingInteract_Keys) == "table" and FishingInteract_Keys or {}
+local FISH_KEY = strupper(KEYS.fish or "]")
+local INTERACT_KEY = strupper(KEYS.interact or "[")
+
+---Put action on key, unless that key already does something else: then say so instead of
+---taking it from you. A key holding the other FishingTrainer action is fair game (the two
+---keys were swapped). Returns true when it changed a binding.
+local function bindKey(key, action, label, where, other)
+    local current = GetBindingAction(key)
+    if current == action then return false end
+    if current and current ~= "" and current ~= other then
+        say(key .. " already does " .. current .. ", so FishingTrainer can't use it for " .. label .. "."
+            .. " Key Bindings > " .. where .. ": put " .. label .. " on " .. key
+            .. ", or pick another key in FishingTrainer's window.")
+        return false
+    end
+    if SetBinding(key, action) then
+        say(label .. " is now on " .. key .. ", the key FishingTrainer presses.")
+        return true
+    end
+    return false
+end
+
+---Bind FishingTrainer's two keys. Fish is only ever FishingTrainer's, so its old keys are
+---cleared; your own Interact keys are left alone.
+local function bindTrainerKeys()
+    if InCombatLockdown() or not (GetBindingAction and SetBinding) then return end
+    if FISH_KEY == INTERACT_KEY then
+        say("the Fish and Interact keys are both " .. FISH_KEY .. ": pick two keys in FishingTrainer's window.")
+        return
+    end
+    local changed = false
+    if GetBindingKey then
+        for _, old in ipairs({ GetBindingKey(FISH_ACTION) }) do
+            if old ~= FISH_KEY and old ~= INTERACT_KEY then
+                SetBinding(old)
+                changed = true
+            end
+        end
+    end
+    changed = bindKey(FISH_KEY, FISH_ACTION, "Fish", "FishingInteract", INTERACT_ACTION) or changed
+    changed = bindKey(INTERACT_KEY, INTERACT_ACTION, "Interact with Target", "Targeting", FISH_ACTION) or changed
+    if changed and SaveBindings and GetCurrentBindingsSet then SaveBindings(GetCurrentBindingsSet()) end
+end
+
 local fishButton = CreateFrame("Button", "FishingInteractButton", UIParent, "SecureActionButtonTemplate")
 -- WoW's own button code fires once, on key down or key up as your settings say
 fishButton:RegisterForClicks("AnyDown", "AnyUp")
@@ -250,6 +302,7 @@ frame:SetScript("OnEvent", function(self, event, arg1, _, arg3)
 
     if event == "PLAYER_LOGIN" then
         setUpButton()
+        bindTrainerKeys()
         if db.saved and not isFishing() then   -- WoW closed mid-cast last time
             apply(false)
             say("your soft-interact settings were still set for fishing from last time; they're back now.")

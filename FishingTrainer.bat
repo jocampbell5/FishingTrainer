@@ -1,6 +1,7 @@
 @echo off
-rem FishingTrainer: double-click to start fishing. In game, Ctrl+Shift pauses and resumes.
-rem Close this window to stop. "FishingTrainer.bat check" only checks the setup.
+rem FishingTrainer: double-click to open its window (Start, Pause, Stop). In game,
+rem Ctrl+Shift pauses and resumes. "FishingTrainer.bat console" runs it in this console
+rem instead; "FishingTrainer.bat check" only checks the setup.
 title FishingTrainer
 cd /d "%~dp0"
 set PYTHONUTF8=1
@@ -39,7 +40,15 @@ if /i "%~1"=="check" (
     exit /b 0
 )
 
-"%PY%" main.py
-echo.
-echo FishingTrainer has stopped.
-pause
+if /i "%~1"=="console" (
+    "%PY%" main.py
+    echo.
+    echo FishingTrainer has stopped.
+    pause
+    exit /b 0
+)
+
+rem The window: pythonw.exe next to python.exe, so no console stays open behind it.
+set "PYW=%PY:python.exe=pythonw.exe%"
+if /i "%PY%"=="python" set "PYW=pythonw"
+start "" "%PYW%" "%~dp0FishingTrainer.pyw"

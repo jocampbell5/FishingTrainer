@@ -169,3 +169,10 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# FishingTrainer debug pictures (latest_bobber.png, latest_mask.png)
+captures/
+# FishingTrainer window settings (its checkboxes)
+settings.json
+# zips built for other computers
+dist/
